@@ -26,29 +26,6 @@ print 'Retrieve public repos for GitHub user: '
 current_user = gets.chomp
 user = Octokit.user(current_user)
 
-
-
-=begin
-# retrieve info for all public repos for specified user
-repos = user.rels[:repos].get.data
-
-repos.each do |repo|
-  total_commits = 0
-  puts repo.name
-  puts repo.description
-
-  Octokit.list_commits(repo.full_name).each do |commit|
-    # there's gotta be a less hacky way to count the number of times this block iterates...
-    total_commits += 1
-  end
-
-  print 'total commits: '
-  puts total_commits
-end
-=end
-
-
-
 puts 'generating CSV file...'
 
 CSV.open('user_info.csv', 'wb') do |csv|
