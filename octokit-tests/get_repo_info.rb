@@ -32,7 +32,7 @@ end
 
 def generate_csv(user)
   CSV.open('user_info.csv', 'wb') do |csv|
-    csv << ['username', 'name', 'repository name', 'repository description', 'total commits']
+    csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'last commit']
     repos = user.rels[:repos].get.data
     repos.each do |repo|
       total_commits = 0
@@ -46,6 +46,8 @@ def generate_csv(user)
 end  
 
 # ---------------the action--------------------
+
+Octokit.auto_paginate = true #attempt to get all commits instead of just the first page!
 
 puts 'This script is testing the functionality of octokit.rb!'
 puts 'In order to access the GitHub API, you\'re going to need some login credentials...'
