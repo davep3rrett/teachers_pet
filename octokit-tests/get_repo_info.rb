@@ -1,12 +1,8 @@
 #!/usr/bin/env ruby
 
-# found this stack overflow question immensely useful:
-# http://stackoverflow.com/questions/25570125/get-contents-of-a-file-from-users-public-github-repos-in-ruby
-
 require 'octokit'
 require 'highline/import'
 require 'csv'
-
 
 #------------------function defs-------------------
 
@@ -24,24 +20,42 @@ def authenticate(credentials)
   end
 end
 
-def get_user()
-  print 'Retrieve public repos for GitHub user: '
-  github_username = gets.chomp
-  Octokit.user(github_username)
+def get_organization()
+  print 'Enter name of the organization you want to inspect: '
+  Octokit.organization(gets.chomp)
 end
 
-def generate_csv(user)
-  CSV.open('user_info.csv', 'wb') do |csv|
+def get_organization_members(organization)
+  organization[:rels][:members].get.data
+end
+
+def get_user(login)
+  Octokit.user(login)
+end
+
+def get_repos(user)
+  user.rels[:repos].get.data
+end
+
+def build_filename(repo)
+  #look up how to get username from a repo object - repo.owner probably isn't right
+  repo[:owner][:login] + '-' + repo.name + '.csv'
+end
+
+
+def get_num_commits(repo)
+  total_commits = 0
+  Octokit.list_commits(repo.full_name).each do |commit|
+    total_commits += 1
+  end
+  total_commits
+end
+
+def generate_csv(repo)
+  CSV.open(build_filename(repo), 'wb') do |csv|
     csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'last commit']
-    repos = user.rels[:repos].get.data
-    repos.each do |repo|
-      total_commits = 0
-      Octokit.list_commits(repo.full_name).each do |commit|
-        # there's gotta be a less hacky way to count the number of times this block iterates...
-        total_commits += 1
-      end
-      csv << [user.login, user.name, repo.name, repo.description, total_commits]
-    end
+    user = get_user(repo[:owner][:login])
+    csv << [repo[:owner][:login], user.name, repo.name, repo.description, get_num_commits(repo)]
   end
 end  
 
@@ -53,6 +67,15 @@ puts 'This script is testing the functionality of octokit.rb!'
 puts 'In order to access the GitHub API, you\'re going to need some login credentials...'
 
 authenticate(get_credentials)
-generate_csv(get_user)
+
+organization = get_organization
+
+puts 'generating CSV files...'
+
+get_organization_members(organization).each do |member|
+  get_repos(member).each do |repo|
+    generate_csv(repo)
+  end
+end
 
 puts 'done!'
