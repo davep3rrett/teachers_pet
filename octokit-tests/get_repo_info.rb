@@ -45,9 +45,15 @@ end
 
 def get_num_commits(repo)
   total_commits = 0
-  Octokit.list_commits(repo.full_name).each do |commit|
-    total_commits += 1
-  end
+  begin
+    Octokit.list_commits(repo.full_name).each do |commit|
+      total_commits += 1
+    end
+  rescue Exception => e
+    puts e.message
+    puts "setting number of commits to 0..."
+    total_commits = 0
+  end  
   total_commits
 end
 
