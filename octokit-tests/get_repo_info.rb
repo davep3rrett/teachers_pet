@@ -38,10 +38,8 @@ def get_repos(user)
 end
 
 def build_filename(repo)
-  #look up how to get username from a repo object - repo.owner probably isn't right
   repo[:owner][:login] + '-' + repo.name + '.csv'
 end
-
 
 def get_num_commits(repo)
   total_commits = 0
@@ -57,11 +55,22 @@ def get_num_commits(repo)
   total_commits
 end
 
+def get_last_commit_date(repo)
+  begin
+    commits = Octokit.list_commits(repo.full_name)
+    last_commit_date = commits[0].commit.author[:date]
+  rescue Exception => e
+    puts e.message
+    last_commit_date = nil
+  end
+  last_commit_date
+end
+
 def generate_csv(repo)
   CSV.open(build_filename(repo), 'wb') do |csv|
     csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'last commit']
     user = get_user(repo[:owner][:login])
-    csv << [repo[:owner][:login], user.name, repo.name, repo.description, get_num_commits(repo)]
+    csv << [repo[:owner][:login], user.name, repo.name, repo.description, get_num_commits(repo), get_last_commit_date(repo)]
   end
 end  
 
