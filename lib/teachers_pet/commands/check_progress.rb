@@ -1,12 +1,14 @@
 module TeachersPet
   class Cli
     option :organization, required: true
-
+    option :repository, required: true
+    
     students_option
     common_options
     
-    desc 'check_progress', "Generate CSV files for each repo belonging to each student in the organization, listing number of commits and other information."
-    def  check_progress
+    desc 'check_progress', "Generate a CSV progress report for each student"
+    
+    def check_progress
       TeachersPet::Actions::CheckProgress.new(options).run
     end
   end
