@@ -13,18 +13,17 @@ module TeachersPet
         @students = self.read_students_file
       end
 
+
       def get_num_commits(repo)
-        total_commits = 0
         begin
-          self.client.list_commits(repo.full_name).each do |commit|
-            total_commits += 1
-          end
+          commits = self.client.list_commits(repo.full_name)
         rescue Exception => e
           puts e.message
-          puts "setting number of commits to 0..."
-          total_commits = 0
-        end  
-        total_commits
+          return 0
+        end
+        unless commits.nil?
+          return commits.length
+        end
       end
 
       def get_last_commit_date(repo)
@@ -62,9 +61,9 @@ module TeachersPet
             next
           end
 
-          file_name = "#{student}-#{@repository}.csv"
           repo = self.client.repository(@repository)
           user = get_user(student)
+          file_name = "#{student}-#{repo.name}.csv"
           
           CSV.open(file_name, "wb") do |csv|
             csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'last commit']
