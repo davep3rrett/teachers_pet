@@ -19,7 +19,7 @@ module TeachersPet
           commits = self.client.list_commits(repo.full_name)
         rescue Exception => e
           puts e.message
-          return 0
+          return nil
         end
         unless commits.nil?
           return commits.length
@@ -38,7 +38,11 @@ module TeachersPet
       end
 
       def get_user(student)
-        self.client.user(student)
+        begin
+          self.client.user(student)
+        rescue
+          return nil
+        end
       end
       
       def create
@@ -53,22 +57,23 @@ module TeachersPet
         # Load the teams
         org_teams = self.client.get_teams_by_name(@organization)
 
-        # Generate CSV progress report for each student
-        puts "\n Generating CSV progress reports..."
-        @students.keys.each do |student|
-          unless org_teams.key?(student)
-            puts(" ** ERROR ** - no team for #{student}")
-            next
-          end
+        file_name = "#{@organization}.csv"
+        repo = self.client.repository(@repository)
 
-          repo = self.client.repository(@repository)
-          user = get_user(student)
-          file_name = "#{student}-#{repo.name}.csv"
-          
-          CSV.open(file_name, "wb") do |csv|
-            csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'last commit']
-  
-            csv << [repo[:owner][:login], user.name, repo.name, repo.description, get_num_commits(repo), get_last_commit_date(repo)]
+        puts "Creating #{file_name}..."
+
+        # Open and write CSV file
+        CSV.open(file_name, 'wb') do |csv|
+          csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'last commit']
+
+          @students.keys.each do |student|
+            user = get_user(student)
+            if repo.nil?
+              csv << [student, user.name, '', '', '', '']
+            else
+              csv << [student, user.name, repo.name, repo.description, get_num_commits(repo), get_last_commit_date(repo)]
+            end
+
           end
         end
       end
