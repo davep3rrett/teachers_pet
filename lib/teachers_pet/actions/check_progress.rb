@@ -44,6 +44,10 @@ module TeachersPet
           return nil
         end
       end
+
+      def get_repos(user)
+        user.rels[:repos].get.data
+      end
       
       def create
         # Authenticate to GitHub
@@ -67,13 +71,17 @@ module TeachersPet
           csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'last commit']
 
           @students.keys.each do |student|
-            user = get_user(student)
-            if repo.nil?
-              csv << [student, user.name, '', '', '', '']
-            else
-              csv << [student, user.name, repo.name, repo.description, get_num_commits(repo), get_last_commit_date(repo)]
-            end
 
+            user = get_user(student)
+            repos = get_repos(user)
+
+            repos.each do |repo|
+              if repo.nil?
+                csv << [student, user.name, '', '', '', '']
+              else
+                csv << [student, user.name, repo.name, repo.description, get_num_commits(repo), get_last_commit_date(repo)]
+              end
+            end
           end
         end
       end

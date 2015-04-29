@@ -1,8 +1,6 @@
 module TeachersPet
   class Cli
     option :organization, required: true
-    option :repository, required: true
-    
     students_option
     common_options
     
