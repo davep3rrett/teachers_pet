@@ -7,12 +7,12 @@ module TeachersPet
       def read_info
         @repository = self.options[:repository]
         @organization = self.options[:organization]
+        @filename = self.options[:filename]
       end
 
       def load_files
         @students = self.read_students_file
       end
-
 
       def get_num_commits(repo)
         begin
@@ -57,32 +57,27 @@ module TeachersPet
         org_hash = self.client.organization(@organization)
         abort('Organization could not be found') if org_hash.nil?
         puts "Found organization at: #{org_hash[:url]}"
-
+        
         # Load the teams
         org_teams = self.client.get_teams_by_name(@organization)
 
-        file_name = "#{@organization}.csv"
-        repo = self.client.repository(@repository)
+        # Provide a default filename for the CSV file if the --filename option is not passed
+        if @filename.nil?
+          @filename = "#{@repository}.csv"
+        end
 
-        puts "Creating #{file_name}..."
-
-        # Open and write CSV file
-        CSV.open(file_name, 'wb') do |csv|
-          csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'last commit']
-
+        puts "Creating #{@filename}..."
+        
+        CSV.open(@filename, 'wb') do |csv|
+          csv << ['username', 'name', 'repository name', 'repository description', 'total commits', 'total additions', 'total deletions', 'last commit']
+          
           @students.keys.each do |student|
-
+            repository_name = "#{@organization}/#{student}-#{@repository}"
             user = get_user(student)
-            repos = get_repos(user)
-
-            repos.each do |repo|
-              if repo.nil?
-                csv << [student, user.name, '', '', '', '']
-              else
-                csv << [student, user.name, repo.name, repo.description, get_num_commits(repo), get_last_commit_date(repo)]
-              end
-            end
+            repo = self.client.repository(repository_name)
+            csv << [student, user.name, "#{student}-#{@repository}", repo.description, get_num_commits(repo), 'ADDITIONS', 'DELETIONS', get_last_commit_date(repo)]
           end
+          
         end
       end
       
