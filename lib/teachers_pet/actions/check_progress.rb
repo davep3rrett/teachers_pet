@@ -14,18 +14,35 @@ module TeachersPet
         @students = self.read_students_file
       end
 
-      def get_num_commits(repo)
-        begin
-          commits = self.client.list_commits(repo.full_name)
-        rescue Exception => e
-          puts e.message
-          return nil
-        end
-        unless commits.nil?
-          return commits.length
-        end
-      end
+      def get_stats(repo)
+        # call to contributors_stats works when arg is a string containing repository name,
+        # but not when arg is an actual Repository object, for some reason ... ?
 
+        # If the contributors stats for a certain repo have not yet been calculated by GitHub, this API call will fire a
+        # background job to calculate them, so there are cases where you will get a 404, but then if you try the API call
+        # a moment later, you will get the stats you were asking for.
+
+        begin
+          stats = self.client.contributors_stats(repo.full_name)
+        rescue Octokit::NotFound => e
+          puts e.message
+          puts 'Waiting 5 seconds for Github API and trying again...'
+          sleep(5)
+          stats = self.client.contributors_stats(repo.full_name)
+        end
+        commits = 0
+        additions = 0
+        deletions = 0
+        stats.each do |contributor|
+          contributor[:weeks].each do |week|
+            commits += week[:c]
+            additions += week[:a]
+            deletions += week[:d]
+          end
+        end
+        return {:commits => commits, :additions => additions, :deletions => deletions}
+      end
+      
       def get_last_commit_date(repo)
         begin
           commits = self.client.list_commits(repo.full_name)
@@ -75,7 +92,8 @@ module TeachersPet
             repository_name = "#{@organization}/#{student}-#{@repository}"
             user = get_user(student)
             repo = self.client.repository(repository_name)
-            csv << [student, user.name, "#{student}-#{@repository}", repo.description, get_num_commits(repo), 'ADDITIONS', 'DELETIONS', get_last_commit_date(repo)]
+            stats = get_stats(repo)
+            csv << [student, user.name, "#{student}-#{@repository}", repo.description, stats[:commits], stats[:additions], stats[:deletions], get_last_commit_date(repo)]
           end
           
         end
