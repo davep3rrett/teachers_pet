@@ -15,21 +15,23 @@ module TeachersPet
       end
 
       def get_stats(repo)
-        # call to contributors_stats works when arg is a string containing repository name,
-        # but not when arg is an actual Repository object, for some reason ... ?
 
         # If the contributors stats for a certain repo have not yet been calculated by GitHub, this API call will fire a
-        # background job to calculate them, so there are cases where you will get a 404, but then if you try the API call
+        # background job to calculate them, so there are cases where you will get a "202 Accepted", but then if you try the API call
         # a moment later, you will get the stats you were asking for.
 
         begin
           stats = self.client.contributors_stats(repo.full_name)
-        rescue Octokit::NotFound => e
+          while client.last_response.headers["status"] == "202 Accepted"
+            puts "Got status 202 Accepted for repository #{repo.full_name}."
+            puts "Waiting 5 seconds for Github to calculate stats and trying again..."
+            sleep(5)
+            stats = self.client.contributors_stats(repo.full_name)
+          end
+          rescue Octokit::NotFound => e # don't crash if we get a 404 for some reason
           puts e.message
-          puts 'Waiting 5 seconds for Github API and trying again...'
-          sleep(5)
-          stats = self.client.contributors_stats(repo.full_name)
         end
+
         commits = 0
         additions = 0
         deletions = 0
